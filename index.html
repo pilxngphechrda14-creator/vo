@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกม: ฮีโร่พิทักษ์ห้องคอมฯ (ป.2)</title>
+    <!-- นำเข้า Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- นำเข้าฟอนต์ภาษาไทย Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); }
+        .btn-press { transition: all 0.1s ease; box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15); }
+        .btn-press:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15); }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .hero-float { animation: float 3s ease-in-out infinite; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="absolute top-4 left-4 text-3xl hidden md:block hero-float">💻</div>
+    <div class="absolute top-10 right-10 text-3xl hidden md:block hero-float" style="animation-delay: 1s;">🛡️</div>
+    <div class="absolute bottom-10 left-10 text-3xl hidden md:block hero-float" style="animation-delay: 1.5s;">⭐</div>
+
+    <!-- MAIN GAME CONTAINER -->
+    <div id="gameScreen" class="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-2xl w-full text-center border-4 border-blue-400 relative overflow-hidden">
+        
+        <!-- Header & Stats -->
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
+            <h1 class="text-2xl sm:text-3xl font-bold text-blue-600 flex items-center gap-2">
+                <span>🦸‍♂️</span> ฮีโร่พิทักษ์ห้องคอมฯ
+            </h1>
+            <div class="flex gap-2">
+                <div class="text-lg font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-200">
+                    🏆 ด่าน <span id="levelDisplay">1</span>/10
+                </div>
+                <div class="text-lg font-bold text-orange-500 bg-orange-50 px-4 py-1.5 rounded-full border border-orange-200 flex items-center gap-1">
+                    ⭐ คะแนน: <span id="scoreDisplay">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-100 rounded-full h-3.5 mb-6 overflow-hidden border border-gray-200">
+            <div id="progressBar" class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full transition-all duration-300 rounded-full" style="width: 10%;"></div>
+        </div>
+
+        <!-- Question Card -->
+        <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6 sm:p-8 mb-8 min-h-[160px] flex flex-col items-center justify-center relative shadow-inner">
+            <div class="absolute -top-3 bg-blue-500 text-white text-xs px-3 py-1 rounded-full font-semibold shadow">
+                สถานการณ์ที่ <span id="questionNumberBadge">1</span>
+            </div>
+            <h2 id="questionText" class="text-2xl sm:text-3xl font-bold text-gray-800 leading-relaxed text-center">
+                กำลังโหลดคำถาม...
+            </h2>
+        </div>
+
+        <!-- Answer Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <button onclick="handleAnswer(true)" class="btn-press bg-emerald-500 hover:bg-emerald-600 text-white text-2xl sm:text-3xl font-bold py-4 px-6 rounded-2xl w-full sm:w-1/2 flex items-center justify-center gap-3">
+                <span class="text-4xl">👍</span> ควรทำ
+            </button>
+            <button onclick="handleAnswer(false)" class="btn-press bg-rose-500 hover:bg-rose-600 text-white text-2xl sm:text-3xl font-bold py-4 px-6 rounded-2xl w-full sm:w-1/2 flex items-center justify-center gap-3">
+                <span class="text-4xl">👎</span> ไม่ควรทำ
+            </button>
+        </div>
+    </div>
+
+    <!-- CUSTOM FEEDBACK MODAL (Replaces alert) -->
+    <div id="feedbackModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border-4 transform transition-all scale-95" id="modalBox">
+            <div id="modalEmoji" class="text-6xl mb-3">✅</div>
+            <h3 id="modalTitle" class="text-2xl sm:text-3xl font-bold mb-2">ตอบถูกครับ!</h3>
+            <p id="modalExplain" class="text-gray-600 text-base sm:text-lg mb-6 leading-relaxed">คำอธิบายเหตุผล...</p>
+            <button onclick="nextQuestion()" class="btn-press bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold py-3 px-8 rounded-xl w-full shadow-lg">
+                ไปข้อต่อไป ➡️
+            </button>
+        </div>
+    </div>
+
+    <!-- RESULT SCREEN -->
+    <div id="resultScreen" class="hidden bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center border-4 border-yellow-400 relative">
+        <div class="text-5xl mb-2">🎉</div>
+        <h1 class="text-3xl sm:text-4xl font-bold text-blue-600 mb-2">จบเกมแล้วครับฮีโร่!</h1>
+        <p class="text-gray-500 mb-6 font-semibold">คุณได้ช่วยเหลือห้องคอมพิวเตอร์สำเร็จแล้ว</p>
+        
+        <div id="starsDisplay" class="text-5xl sm:text-6xl mb-4 tracking-wider">⭐⭐⭐</div>
+        
+        <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6">
+            <p class="text-xl sm:text-2xl text-gray-700 font-bold">
+                คะแนนรวม: <span id="finalScore" class="text-orange-500">0</span> / <span id="maxScore">10</span>
+            </p>
+            <p id="badgeText" class="text-blue-600 font-semibold mt-1">ได้รับเหรียญตรา: สุดยอดผู้พิทักษ์คอมพิวเตอร์ 🏅</p>
+        </div>
+
+        <button onclick="startGame()" class="btn-press bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold py-3 px-8 rounded-xl w-full shadow-lg">
+            🔄 เล่นใหม่อีกครั้ง
+        </button>
+    </div>
+
+    <!-- GAME LOGIC & SOUND ENGINE -->
+    <script>
+        // Web Audio API Sound Synthesizer (No external sound files required)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554.37, now + 0.1);
+                osc.frequency.setValueAtTime(659.25, now + 0.2);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.setValueAtTime(150, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+        }
+
+        // 10 Interactive Computer Room Rules & Problem Solving questions for 2nd Graders
+        const questions = [
+            { text: "กินขนมและดื่มน้ำหน้าเครื่องคอมพิวเตอร์", isGood: false, explain: "น้ำและขนมอาจหกใส่คีย์บอร์ดหรือแผงวงจร ทำให้คอมพิวเตอร์ช็อตและพังได้นะ!" },
+            { text: "รีบแจ้งคุณครูทันทีเมื่อคอมพิวเตอร์เปิดไม่ติดหรือมีควันขึ้น", isGood: true, explain: "เยี่ยมมาก! ห้ามซ่อมแซมเองเพราะอาจเกิดอันตรายจากไฟฟ้าดูด ต้องให้ผู้ใหญ่ช่วย" },
+            { text: "บอกชื่อ ที่อยู่ หรือเบอร์โทรศัพท์ส่วนตัวให้คนแปลกหน้าในอินเทอร์เน็ต", isGood: false, explain: "อันตรายมาก! ข้อมูลส่วนตัวต้องเก็บเป็นความลับ ห้ามบอกคนแปลกหน้าเด็ดขาด" },
+            { text: "แบ่งปันกันใช้คอมพิวเตอร์และผลัดกันเล่นกับเพื่อนๆ อย่างมีน้ำใจ", isGood: true, explain: "เก่งมาก! การแบ่งปันและการเข้าแถวรอคิวอย่างเป็นระเบียบช่วยให้พวกเราอยู่ร่วมกันอย่างมีความสุข" },
+            { text: "ทุบหรือเคาะแป้นพิมพ์แรงๆ เวลาเล่นเกมไม่ทันใจ", isGood: false, explain: "การทุบหรือเคาะแรงๆ จะทำให้ปุ่มคีย์บอร์ดหลุดเสียหาย ควรใช้งานอย่างทะนุถนอมครับ" },
+            { text: "ปิดเครื่องคอมพิวเตอร์ตามขั้นตอนที่ถูกต้องทุกครั้งหลังใช้งานเสร็จ", isGood: true, explain: "ถูกต้องที่สุด! การกด Shut Down ช่วยถนอมระบบและอุปกรณ์ให้อยู่ใช้งานได้นานๆ" },
+            { text: "ดึงสายไฟ ปลั๊กไฟ หรือเล่นสายเชื่อมต่อคอมพิวเตอร์เล่นสนุก", isGood: false, explain: "อันตรายถึงชีวิต! ห้ามดึงหรือเล่นสายไฟเด็ดขาด เพราะอาจถูกไฟฟ้าดูดได้" },
+            { text: "เช็ดมือให้สะอาดและแห้งสนิทก่อนมานั่งใช้งานคอมพิวเตอร์", isGood: true, explain: "เก่งมาก! มือที่แห้งช่วยป้องกันไม่ให้น้ำหยดใส่อุปกรณ์ไฟฟ้าและป้องกันไฟดูดได้ด้วย" },
+            { text: "บอกรหัสผ่านคอมพิวเตอร์หรือรหัสผ่านเกมให้เพื่อนสนิทฟัง", isGood: false, explain: "รหัสผ่านเป็นเรื่องส่วนตัว แม้จะเป็นเพื่อนรักก็ไม่ควรบอก เพื่อความปลอดภัยของข้อมูลเราเอง" },
+            { text: "เอาดินสอหรือไม้บรรทัดไปขีดเขียนบนหน้าจอมอนิเตอร์เล่น", isGood: false, explain: "หน้าจอคอมพิวเตอร์บอบบางมาก การขีดเขียนจะทำให้หน้าจอเป็นรอยขีดข่วนและเสียหาย" }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answeredCurrent = false;
+
+        function startGame() {
+            playSound('click');
+            currentQuestionIndex = 0;
+            score = 0;
+            answeredCurrent = false;
+            document.getElementById('resultScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            updateUI();
+        }
+
+        function updateUI() {
+            answeredCurrent = false;
+            const qNum = currentQuestionIndex + 1;
+            document.getElementById('levelDisplay').innerText = qNum;
+            document.getElementById('scoreDisplay').innerText = score;
+            document.getElementById('questionNumberBadge').innerText = qNum;
+            document.getElementById('questionText').innerText = questions[currentQuestionIndex].text;
+            
+            // Update progress bar percentage
+            const progressPercent = (qNum / questions.length) * 100;
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+        }
+
+        function handleAnswer(userChoice) {
+            if (answeredCurrent) return; // Prevent double clicking
+            answeredCurrent = true;
+
+            const currentQ = questions[currentQuestionIndex];
+            const isCorrect = (userChoice === currentQ.isGood);
+
+            const modalBox = document.getElementById('modalBox');
+            const modalEmoji = document.getElementById('modalEmoji');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalExplain = document.getElementById('modalExplain');
+            const feedbackModal = document.getElementById('feedbackModal');
+
+            if (isCorrect) {
+                playSound('correct');
+                score++;
+                modalEmoji.innerText = "🎉";
+                modalTitle.innerText = "ถูกต้องแล้วครับ! เก่งมาก";
+                modalTitle.className = "text-2xl sm:text-3xl font-bold mb-2 text-emerald-600";
+                modalBox.className = "bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border-4 border-emerald-400";
+            } else {
+                playSound('wrong');
+                modalEmoji.innerText = "💡";
+                modalTitle.innerText = "เกือบถูกแล้ว! มาดูเหตุผลกัน";
+                modalTitle.className = "text-2xl sm:text-3xl font-bold mb-2 text-rose-500";
+                modalBox.className = "bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border-4 border-rose-400";
+            }
+
+            modalExplain.innerText = currentQ.explain;
+            document.getElementById('scoreDisplay').innerText = score;
+
+            // Show custom modal
+            feedbackModal.classList.remove('hidden');
+            feedbackModal.classList.add('flex');
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            const feedbackModal = document.getElementById('feedbackModal');
+            feedbackModal.classList.remove('flex');
+            feedbackModal.classList.add('hidden');
+
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                updateUI();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.remove('hidden');
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('maxScore').innerText = questions.length;
+
+            let stars = "";
+            let badge = "";
+            if (score === questions.length) {
+                stars = "⭐⭐⭐";
+                badge = "ได้รับเหรียญตรา: ฮีโร่ทองคำผู้พิทักษ์คอมพิวเตอร์ยอดเยี่ยม 🥇";
+            } else if (score >= questions.length * 0.7) {
+                stars = "⭐⭐";
+                badge = "ได้รับเหรียญตรา: ผู้ช่วยฮีโร่ผู้รอบรู้ 🥈";
+            } else if (score > 0) {
+                stars = "⭐";
+                badge = "ได้รับเหรียญตรา: นักเรียนฝึกหัดพิทักษ์คอม 🥉";
+            } else {
+                stars = "💪";
+                badge = "พยายามใหม่อีกนิดนะ หนูทำได้แน่นอน!";
+            }
+
+            document.getElementById('starsDisplay').innerText = stars;
+            document.getElementById('badgeText').innerText = badge;
+        }
+
+        // Initialize game on load
+        window.onload = function () {
+            startGame();
+        };
+    </script>
+</body>
+</html>
